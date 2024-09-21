@@ -1,0 +1,138 @@
+﻿@{
+    ViewData["Title"] = "Fake User Data Generator";
+}
+
+<h2>Fake User Data Generator</h2>
+
+<form>
+    <label>Select Region: </label>
+    <select id="region" onchange="GenerateData()">
+        <option value="Poland">Poland</option>
+        <option value="USA">USA</option>
+        <option value="Georgia">Georgia</option>
+    </select>
+
+    <br /><br />
+
+    <label>Errors per Record: </label>
+    <input type="range" id="errorSlider" min="0" max="10" step="0.1" onchange="UpdateErrors()">
+    <input type="number" id="errorCount" min="0" max="1000" oninput="UpdateErrors()">
+
+    <br /><br />
+
+    <label>Seed: </label>
+    <input type="number" id="seedValue" min="0" oninput="GenerateData()">
+    <button type="button" onclick="GenerateRandomSeed()">Random Seed</button>
+
+    <br /><br />
+    <button type="button" onclick="exportToCsv()">Export to CSV</button>
+    <table>
+        <thead>
+            <tr>
+                <th>Index</th>
+                <th>Random ID</th>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Phone</th>
+            </tr>
+        </thead>
+        <tbody id="dataTable"></tbody>
+    </table>
+</form>
+
+<!-- Infinite Scroll Trigger -->
+<div id="scrollLoading" style="height: 50px; text-align: center; display: none;">
+    <p>Loading more records...</p>
+</div>
+
+<script>
+    let currentPage = 0;
+    let isLoading = false;
+    let lastPageReached = false;
+
+    function GenerateData() {
+        currentPage = 0;
+        document.getElementById('dataTable').innerHTML = '';  // Clear table
+        lastPageReached = false;
+        LoadMoreData();
+    }
+
+    function LoadMoreData() {
+        if (isLoading || lastPageReached) return;
+
+        isLoading = true;
+        document.getElementById('scrollLoading').style.display = 'block';  // Show loading
+
+        const region = document.getElementById('region').value;
+        const errorCount = document.getElementById('errorCount').value;
+        const seed = document.getElementById('seedValue').value;
+
+        fetch(`/api/data?page=${currentPage}&region=${region}&errors=${errorCount}&seed=${seed}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    lastPageReached = true;  // No more records to load
+                }
+
+                const table = document.getElementById('dataTable');
+                data.forEach((row) => {
+                    const rowHTML = `<tr>
+                        <td>${row.index}</td>
+                        <td>${row.randomId}</td>
+                        <td>${row.name}</td>
+                        <td>${row.address}</td>
+                        <td>${row.phone}</td>
+                    </tr>`;
+                    table.innerHTML += rowHTML;
+                });
+
+                currentPage += 1;
+                isLoading = false;
+                document.getElementById('scrollLoading').style.display = 'none';  // Hide loading
+            })
+            .catch(error => {
+                console.error("Error loading data:", error);
+                isLoading = false;
+                document.getElementById('scrollLoading').style.display = 'none';  // Hide loading
+            });
+    }
+
+    // Function to generate a random seed
+    function GenerateRandomSeed() {
+        document.getElementById('seedValue').value = Math.floor(Math.random() * 100000);
+        GenerateData();
+    }
+
+    // Function to update errors based on slider input
+    function UpdateErrors() {
+        const errorSlider = document.getElementById('errorSlider');
+        const errorCount = document.getElementById('errorCount');
+        errorCount.value = errorSlider.value;
+        GenerateData();
+    }
+
+    // Infinite scroll logic: Detect if the user is near the bottom of the page
+    window.addEventListener('scroll', function() {
+        const scrollPosition = window.innerHeight + window.pageYOffset;
+        const documentHeight = document.documentElement.scrollHeight;
+
+        // If the user scrolls within 100 pixels of the bottom, load more data
+        if (scrollPosition >= documentHeight - 100 && !isLoading && !lastPageReached) {
+            LoadMoreData();
+        }
+    });
+
+  
+
+     
+    function exportToCsv() {
+        const region = document.getElementById('region').value;
+        const errorCount = document.getElementById('errorCount').value;
+        const seed = document.getElementById('seedValue').value;
+
+        // Redirect to the CSV export URL
+        window.location.href = `/api/data/exportCsv?region=${region}&errors=${errorCount}&seed=${seed}`;
+    }
+
+
+</script>
