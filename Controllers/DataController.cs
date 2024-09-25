@@ -1,4 +1,4 @@
-﻿using FakeUserGenerator.Models;
+using FakeUserGenerator.Models;
 using FakeUserGenerator.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,16 +17,31 @@ namespace FakeUserGenerator.Controllers
         [HttpGet]
         public IActionResult GetData(int page, string region, int errors, int seed)
         {
-            // Call the service to generate user data
-            var data = _fakeUserService.GenerateUserData(region, errors, seed, page);
+            int recordsPerPage = 20;
+            int startIndex = page * recordsPerPage + 1;
+
+            // Use the same seed for all pages
+            var random = new Random(seed);
+
+            // Skip random numbers for previous pages
+            SkipRandomNumbers(random, page * recordsPerPage);
+
+            // Generate the data with the appropriate start index
+            var data = _fakeUserService.GenerateUserData(region, errors, random, recordsPerPage, startIndex);
             return new JsonResult(data);
         }
 
         [HttpGet("exportCsv")]
         public IActionResult ExportToCsv(string region, int errors, int seed)
         {
-            // Call the service to generate user data for the CSV file (100 records)
-            var data = _fakeUserService.GenerateUserData(region, errors, seed, 100);
+            // Generate 100 records for the CSV export
+            var random = new Random(seed);
+
+            // Skip numbers for CSV generation consistency
+            SkipRandomNumbers(random, 0); // Skip 0 numbers since we want all 100 records
+
+            // Generate 100 records
+            var data = _fakeUserService.GenerateUserData(region, errors, random, 100, 1); // Start index from 1 for CSV
 
             // Convert the data to CSV
             var csv = ConvertToCsv(data);
@@ -50,6 +65,15 @@ namespace FakeUserGenerator.Controllers
             }
 
             return csv.ToString();
+        }
+
+        // Function to skip a certain number of random numbers
+        private void SkipRandomNumbers(Random random, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                random.Next();
+            }
         }
     }
 }
