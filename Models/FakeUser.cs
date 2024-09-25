@@ -1,4 +1,4 @@
-﻿namespace FakeUserGenerator.Models
+namespace FakeUserGenerator.Models
 {
     public class FakeUser
     {
