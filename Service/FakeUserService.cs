@@ -1,4 +1,4 @@
-﻿using Bogus;
+using Bogus;
 using System;
 using FakeUserGenerator.Models;
 
@@ -6,22 +6,25 @@ namespace FakeUserGenerator.Services
 {
     public class FakeUserService
     {
-        public List<FakeUser> GenerateUserData(string region, int errorCount, int seed, int page, int count = 20)
+        public List<FakeUser> GenerateUserData(string region, int errorCount, Random random, int count, int startIndex)
         {
-            var random = new Random(seed + page);  // Seed based on user seed and page
-            var users = new List<FakeUser>();
+            // Instead of reusing a single faker object, we create separate Faker instances for each field
+            // This ensures the locale is applied consistently
+
+            List<FakeUser> users = new List<FakeUser>();
 
             for (int i = 0; i < count; i++)
             {
                 var user = new FakeUser
                 {
-                    Index = i + 1 + (page * count),  // Page based index
+                    Index = startIndex + i,
                     RandomId = Guid.NewGuid().ToString(),
                     Name = GenerateName(region, random),
                     Address = GenerateAddress(region, random),
                     Phone = GeneratePhone(region, random)
                 };
 
+                // Use the same Random object to apply errors
                 ApplyErrors(user, errorCount, random);
                 users.Add(user);
             }
@@ -31,45 +34,46 @@ namespace FakeUserGenerator.Services
 
         private string GenerateName(string region, Random random)
         {
-            var name = region switch
+            var faker = new Faker(GetFakerLocale(region))
             {
-                "Poland" => new Faker("pl").Name.FullName(),
-                "USA" => new Faker("en").Name.FullName(),
-                "Georgia" => new Faker("ka").Name.FullName(),
-                _ => new Faker().Name.FullName()
+                Random = new Bogus.Randomizer(random.Next())
             };
-            return name;
+            return faker.Name.FullName();
         }
 
         private string GenerateAddress(string region, Random random)
         {
-            var address = region switch
+            var faker = new Faker(GetFakerLocale(region))
             {
-                "Poland" => new Faker("pl").Address.FullAddress(),
-                "USA" => new Faker("en").Address.FullAddress(),
-                "Georgia" => new Faker("ka").Address.FullAddress(),
-                _ => new Faker().Address.FullAddress()
+                Random = new Bogus.Randomizer(random.Next())
             };
-            return address;
+            return faker.Address.FullAddress();
         }
 
         private string GeneratePhone(string region, Random random)
         {
-            var phone = region switch
+            var faker = new Faker(GetFakerLocale(region))
             {
-                "Poland" => new Faker("pl").Phone.PhoneNumber(),
-                "USA" => new Faker("en").Phone.PhoneNumber(),
-                "Georgia" => new Faker("ka").Phone.PhoneNumber(),
-                _ => new Faker().Phone.PhoneNumber()
+                Random = new Bogus.Randomizer(random.Next())
             };
-            return phone;
+            return faker.Phone.PhoneNumber();
+        }
+
+        private string GetFakerLocale(string region)
+        {
+            return region switch
+            {
+                "Poland" => "pl",
+                "USA" => "en",
+                "Georgia" => "ge",
+                _ => "en"  // Default to English if the region is not matched
+            };
         }
 
         private void ApplyErrors(FakeUser user, int errorCount, Random random)
         {
             if (errorCount <= 0) return;
 
-            // Apply error logic (delete, add, swap)
             for (int i = 0; i < errorCount; i++)
             {
                 ApplyRandomError(user, random);
@@ -85,13 +89,13 @@ namespace FakeUserGenerator.Services
             var errorType = random.Next(3);  // 0: delete, 1: add, 2: swap
             switch (errorType)
             {
-                case 0:  // Delete character
+                case 0:
                     selectedField = DeleteCharacterAtRandom(selectedField, random);
                     break;
-                case 1:  // Add character
+                case 1:
                     selectedField = AddCharacterAtRandom(selectedField, random);
                     break;
-                case 2:  // Swap characters
+                case 2:
                     selectedField = SwapCharactersAtRandom(selectedField, random);
                     break;
             }
