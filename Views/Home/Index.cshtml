@@ -18,7 +18,7 @@
         <div class="p-2 bd-highlight">
     <label>Errors per Record: </label>
     <input type="range" id="errorSlider" min="0" max="10" step="0.1" onchange="UpdateErrors()">
-    <input type="number" id="errorCount" min="0" max="1000" oninput="UpdateSlider()">
+            <input type="number" id="errorCount" min="0" max="1000"  oninput="UpdateSlider()">
     </div>
     <br /><br />
         <div class="p-2 bd-highlight">
@@ -115,15 +115,19 @@
         const errorCount = document.getElementById('errorCount');
 
         // Synchronize errorCount (0-1000) with the slider (0-10)
-        errorCount.value = Math.round(errorSlider.value * 100); // Scale slider value for field (0..1000)
+        errorCount.value = (errorSlider.value); // Scale slider value for field (0..1000)
         GenerateData();
     }
 
     // Function to synchronize numeric input with the slider
     function UpdateSlider() {
+
+        
         const errorSlider = document.getElementById('errorSlider');
         const errorCount = document.getElementById('errorCount');
-
+        if (errorCount.value > 1000) {
+            errorCount.value = 1000; // Set it to the maximum allowed value
+        }
         // Synchronize slider (0-10) with errorCount (0-1000)
         errorSlider.value = Math.min(10, errorCount.value / 100); // Scale field value for slider (0..10)
         GenerateData();
